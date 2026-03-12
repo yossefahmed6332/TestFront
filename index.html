@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Numerical Integration Calculator</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <div class="bg-grid"></div>
+
+  <main class="page-wrapper">
+
+    <header class="page-header">
+      <div class="header-symbol">∫</div>
+      <div class="header-text">
+        <h1 class="page-title">Numerical Integration</h1>
+        <p class="page-subtitle">Calculator</p>
+      </div>
+    </header>
+
+    <div class="card">
+
+      <div class="card-section">
+        <label class="input-label" for="function">
+          <span class="label-tag">f(x)</span>
+          Function
+        </label>
+        <div class="input-wrapper">
+          <input
+            type="text"
+            id="function"
+            class="input-field mono"
+            placeholder="e.g. 1/(x+1)  or  x^2 + sin(x)"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <div class="input-hint">Use standard math notation</div>
+        </div>
+      </div>
+
+      <div class="input-row">
+        <div class="card-section">
+          <label class="input-label" for="lower">
+            <span class="label-tag">a</span>
+            Lower Limit
+          </label>
+          <input type="number" id="lower" class="input-field mono" placeholder="0" step="any" />
+        </div>
+        <div class="divider-arrow">→</div>
+        <div class="card-section">
+          <label class="input-label" for="upper">
+            <span class="label-tag">b</span>
+            Upper Limit
+          </label>
+          <input type="number" id="upper" class="input-field mono" placeholder="3" step="any" />
+        </div>
+      </div>
+
+      <div class="card-section">
+        <label class="input-label" for="intervals">
+          <span class="label-tag">n</span>
+          Number of Intervals
+        </label>
+        <input type="number" id="intervals" class="input-field mono" placeholder="6" min="1" step="1" />
+      </div>
+
+      <div class="card-section">
+        <p class="input-label">
+          <span class="label-tag">∼</span>
+          Integration Method
+        </p>
+        <div class="radio-group">
+          <label class="radio-card" id="radio-trap">
+            <input type="radio" name="method" value="trapezoidal" />
+            <span class="radio-indicator"></span>
+            <span class="radio-content">
+              <span class="radio-name">Trapezoidal</span>
+              <span class="radio-desc">Linear segments</span>
+            </span>
+          </label>
+          <label class="radio-card" id="radio-rect">
+            <input type="radio" name="method" value="rectangular" />
+            <span class="radio-indicator"></span>
+            <span class="radio-content">
+              <span class="radio-name">Rectangular</span>
+              <span class="radio-desc">Midpoint rule</span>
+            </span>
+          </label>
+          <label class="radio-card" id="radio-simp">
+            <input type="radio" name="method" value="simpson" checked />
+            <span class="radio-indicator"></span>
+            <span class="radio-content">
+              <span class="radio-name">Simpson</span>
+              <span class="radio-desc">Parabolic fit</span>
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <button class="calc-btn" id="calcBtn" onclick="calculate()">
+        <span class="btn-icon">∫</span>
+        <span class="btn-text">Calculate</span>
+        <span class="btn-loader" id="loader"></span>
+      </button>
+
+      <div class="result-box" id="resultBox">
+        <div class="result-label">Result</div>
+        <div class="result-value mono" id="resultValue">—</div>
+        <div class="result-meta" id="resultMeta"></div>
+      </div>
+
+      <div class="error-box" id="errorBox"></div>
+
+    </div>
+
+    <footer class="page-footer">
+      Numerical methods · Approximation via finite intervals
+    </footer>
+
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
