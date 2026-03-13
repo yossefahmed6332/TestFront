@@ -1,221 +1,602 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NIC — Numerical Integration Calculator</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Outfit:wght@300;400;500;600&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculus II — Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Outfit:wght@300;400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ══ TOKENS ══ */
+:root {
+  --f-display: 'Playfair Display', Georgia, serif;
+  --f-body:    'Outfit', system-ui, sans-serif;
+  --f-mono:    'Fira Code', monospace;
+  --ember:     #e87048;
+  --ember-h:   #f08e6e;
+  --ember-g:   rgba(232,112,72,.22);
+  --ease-out:    cubic-bezier(.16,1,.3,1);
+  --ease-spring: cubic-bezier(.34,1.56,.64,1);
+}
+
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html,body { width:100%; height:100%; overflow:hidden; }
+
+body {
+  font-family: var(--f-body);
+  background: #07060a;
+  color: #f0ebe2;
+  overflow: hidden;
+}
+
+/* ══ HERO CANVAS ══ */
+#heroCanvas {
+  position: fixed; inset: 0;
+  width: 100%; height: 100%;
+  z-index: 0;
+}
+
+/* ══ GRAIN ══ */
+.grain {
+  position: fixed; inset: 0; z-index: 1;
+  pointer-events: none; opacity: .22;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px;
+}
+
+/* ══ LAYOUT ══ */
+.page {
+  position: relative; z-index: 2;
+  width: 100%; height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr auto;
+  grid-template-areas:
+    "left right"
+    "ticker ticker";
+}
+
+/* ══ LEFT PANEL ══ */
+.left-panel {
+  grid-area: left;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(40px,6vw,100px) clamp(32px,5vw,80px);
+  padding-right: clamp(16px,3vw,48px);
+}
+
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--f-mono); font-size: .68rem; font-weight: 500;
+  letter-spacing: .2em; text-transform: uppercase; color: var(--ember);
+  margin-bottom: 28px;
+  opacity: 0; transform: translateY(16px);
+  animation: rise .7s .2s var(--ease-out) forwards;
+}
+.eyebrow-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--ember);
+  animation: pulse-dot 2s ease infinite;
+}
+
+.main-title {
+  font-family: var(--f-display);
+  font-size: clamp(3.2rem, 7vw, 6.8rem);
+  font-weight: 900;
+  line-height: 1.0;
+  letter-spacing: -.03em;
+  color: #ffffff;
+  margin-bottom: 20px;
+  opacity: 0;
+  animation: rise .9s .4s var(--ease-out) forwards;
+}
+.main-title .line { display: block; overflow: hidden; }
+.main-title .line-inner { display: block; animation: line-rise .9s var(--ease-out) both; }
+.main-title .line:nth-child(1) .line-inner { animation-delay: .35s; }
+.main-title .line:nth-child(2) .line-inner { animation-delay: .5s; }
+.main-title .line:nth-child(3) .line-inner { animation-delay: .65s; }
+.main-title em { color: var(--ember); font-style: italic; }
+.main-title .line { opacity: 1; animation: none; }
+
+.subtitle {
+  font-size: clamp(.88rem, 1.4vw, 1.05rem);
+  color: rgba(240,235,226,.5);
+  line-height: 1.75;
+  max-width: 380px;
+  margin-bottom: 46px;
+  opacity: 0;
+  animation: rise .7s .85s var(--ease-out) forwards;
+}
+
+.cta-row {
+  display: flex; align-items: center; gap: 20px;
+  opacity: 0;
+  animation: rise .7s 1.05s var(--ease-out) forwards;
+}
+
+.btn-calc {
+  display: inline-flex; align-items: center; gap: 12px;
+  height: 58px; padding: 0 36px;
+  background: var(--ember);
+  color: #fff;
+  font-family: var(--f-body); font-size: 1rem; font-weight: 600;
+  border: none; border-radius: 9999px; cursor: pointer;
+  box-shadow: 0 4px 32px var(--ember-g), 0 0 0 0 rgba(232,112,72,.3);
+  text-decoration: none;
+  position: relative; overflow: hidden;
+  transition: all .22s var(--ease-out);
+}
+.btn-calc::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,.18), transparent 55%);
+}
+.btn-calc:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 8px 40px var(--ember-g), 0 0 0 8px rgba(232,112,72,.1);
+  background: var(--ember-h);
+}
+.btn-calc:active { transform: scale(.97); }
+.btn-arrow {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(255,255,255,.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .95rem;
+  transition: transform .2s var(--ease-spring);
+}
+.btn-calc:hover .btn-arrow { transform: translateX(3px); }
+
+.btn-secondary {
+  font-size: .85rem; color: rgba(240,235,226,.45);
+  text-decoration: none; font-family: var(--f-mono);
+  letter-spacing: .05em;
+  border-bottom: 1px solid rgba(232,112,72,.0);
+  transition: color .18s, border-color .18s;
+  padding-bottom: 2px;
+}
+.btn-secondary:hover { color: var(--ember); border-color: rgba(232,112,72,.4); }
+
+/* stat row */
+.stats-row {
+  display: flex; gap: 28px; margin-top: 52px;
+  opacity: 0;
+  animation: rise .6s 1.25s var(--ease-out) forwards;
+}
+.stat { display: flex; flex-direction: column; gap: 3px; }
+.stat-num {
+  font-family: var(--f-mono); font-size: 1.5rem; font-weight: 500;
+  color: var(--ember); line-height: 1;
+}
+.stat-label { font-size: .68rem; color: rgba(240,235,226,.35); letter-spacing: .12em; text-transform: uppercase; }
+.stat-div { width: 1px; background: rgba(240,235,226,.1); align-self: stretch; }
+
+/* ══ RIGHT PANEL ══ */
+.right-panel {
+  grid-area: right;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+#mathCanvas {
+  width: min(500px, 90%);
+  height: min(500px, 90%);
+  opacity: 0;
+  animation: rise 1s .6s var(--ease-out) forwards;
+}
+
+/* ══ TICKER BOTTOM ══ */
+.ticker {
+  grid-area: ticker;
+  width: 100%;
+  overflow: hidden;
+  border-top: 1px solid rgba(232,112,72,.18);
+  background: rgba(7,6,10,.7);
+  backdrop-filter: blur(8px);
+  padding: 14px 0;
+  position: relative;
+}
+.ticker::before,.ticker::after {
+  content: ''; position: absolute; top: 0; bottom: 0; width: 80px; z-index: 2;
+  pointer-events: none;
+}
+.ticker::before { left: 0; background: linear-gradient(to right, #07060a, transparent); }
+.ticker::after  { right: 0; background: linear-gradient(to left,  #07060a, transparent); }
+
+.ticker-track {
+  display: flex; align-items: center; gap: 0;
+  animation: ticker-scroll 22s linear infinite;
+  width: max-content;
+}
+.ticker-item {
+  display: inline-flex; align-items: center; gap: 18px;
+  padding: 0 40px;
+  font-family: var(--f-mono); font-size: .78rem;
+  color: rgba(232,112,72,.7);
+  white-space: nowrap;
+  border-right: 1px solid rgba(232,112,72,.15);
+}
+.ticker-item .t-sym { color: var(--ember); font-weight: 500; }
+.ticker-item .t-sep { color: rgba(240,235,226,.15); margin: 0 4px; }
+
+/* ══ KEYFRAMES ══ */
+@keyframes rise { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:translateY(0)} }
+@keyframes line-rise { from{transform:translateY(100%)} to{transform:translateY(0)} }
+@keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+@keyframes ticker-scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+@keyframes float-orb { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-18px) scale(1.04)} }
+
+/* ══ RESPONSIVE ══ */
+@media (max-width: 768px) {
+  html,body { overflow: auto; }
+  .page {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    grid-template-areas: "left" "right" "ticker";
+    height: auto; min-height: 100vh;
+  }
+  .left-panel { padding: 60px 28px 32px; }
+  .right-panel { padding: 20px 28px; min-height: 320px; }
+  #mathCanvas { width: 300px; height: 300px; }
+  .main-title { font-size: clamp(2.8rem,10vw,4rem); }
+}
+</style>
 </head>
 <body>
 
-  <!-- ══════════════════════════════════════════
-       PAGE 1 — LANDING (blank, dark, full screen)
-       ══════════════════════════════════════════ -->
-  <section class="landing" id="landing">
+<!-- Background canvas -->
+<canvas id="heroCanvas"></canvas>
 
-    <!-- Full-screen motion canvas -->
-    <canvas id="heroCanvas"></canvas>
+<!-- Grain overlay -->
+<div class="grain"></div>
 
-    <!-- Grain texture overlay -->
-    <div class="grain" aria-hidden="true"></div>
+<!-- Main layout -->
+<div class="page">
 
-    <!-- Only the H1 — nothing else -->
-    <div class="landing-center">
-      <h1 class="landing-h1">
-        <span class="landing-h1-line" id="typeLine"></span>
-        <span class="landing-cursor" aria-hidden="true"></span>
-      </h1>
+  <!-- LEFT -->
+  <div class="left-panel">
+    <div class="eyebrow">
+      <span class="eyebrow-dot"></span>
+      Advanced Mathematics
     </div>
 
-    <!-- Scroll hint -->
-    <div class="scroll-hint" aria-hidden="true">
-      <div class="scroll-line"></div>
+    <h1 class="main-title">
+      <span class="line"><span class="line-inner">Calculate</span></span>
+      <span class="line"><span class="line-inner">Calculus</span></span>
+      <span class="line"><span class="line-inner"><em>II</em></span></span>
+    </h1>
+
+    <p class="subtitle">
+      Integrals, series, differential equations — solved instantly with full step-by-step clarity.
+    </p>
+
+    <div class="cta-row">
+      <a href="calculator.html" class="btn-calc">
+        Calculate Now
+        <span class="btn-arrow">→</span>
+      </a>
+      <a href="#" class="btn-secondary">Learn more</a>
     </div>
 
-  </section>
-
-
-  <!-- ══════════════════════════════════════════
-       PAGE 2 — CALCULATOR
-       ══════════════════════════════════════════ -->
-  <section class="calc-page" id="calculator">
-
-    <canvas id="bg-canvas" aria-hidden="true"></canvas>
-
-    <div class="app">
-
-      <header class="topbar">
-        <div class="topbar-brand">
-          <div class="topbar-logo" aria-hidden="true">∫</div>
-          <span class="topbar-name">NIC · v2.0</span>
-        </div>
-        <nav class="topbar-actions">
-          <a class="btn btn-ghost" href="#landing">← Back</a>
-          <button class="theme-btn" onclick="Theme.toggle()" aria-label="Toggle theme">
-            <span class="t-icon">☀</span>
-            <span class="t-label">Light</span>
-          </button>
-        </nav>
-      </header>
-
-      <main class="main">
-
-        <div class="hero-area">
-          <div class="calc-hero">
-            <div class="eyebrow"><span class="eyebrow-dot"></span>Numerical Methods</div>
-            <h2 class="calc-title">Definite <em>Integration</em><br/>Calculator</h2>
-            <p class="calc-sub">Enter your function, set bounds, choose a method.</p>
-          </div>
-        </div>
-
-        <div class="form-area">
-          <div class="card" id="mainCard">
-            <div class="card-shimmer" aria-hidden="true"></div>
-
-            <div class="card-header">
-              <span class="card-title">Configuration</span>
-              <span class="status-wrap">
-                <span class="status-dot" id="statusDot"></span>
-                <span class="status-label">ready</span>
-              </span>
-            </div>
-
-            <div class="card-body">
-              <div class="form-stack">
-
-                <div class="form-group">
-                  <label class="label" for="inp-function">
-                    <span class="badge">f(x)</span>Function
-                  </label>
-                  <div class="field-wrap">
-                    <input type="text" id="inp-function" class="input mono"
-                      placeholder="e.g.  1/(x+1)  ·  x**2 + sin(x)  ·  exp(-x)"
-                      autocomplete="off" spellcheck="false" aria-required="true" />
-                    <span class="field-icon" aria-hidden="true"></span>
-                    <span class="field-msg" role="alert"></span>
-                  </div>
-                  <span class="hint">Python math syntax · use ** for powers</span>
-                </div>
-
-                <div class="section-label"><span>Integration bounds</span></div>
-
-                <div class="bounds-row">
-                  <div class="form-group">
-                    <label class="label" for="inp-lower"><span class="badge">a</span>Lower</label>
-                    <div class="field-wrap">
-                      <input type="number" id="inp-lower" class="input mono" placeholder="0" step="any" aria-required="true" />
-                      <span class="field-icon" aria-hidden="true"></span>
-                      <span class="field-msg" role="alert"></span>
-                    </div>
-                  </div>
-                  <div class="bounds-arrow" aria-hidden="true">→</div>
-                  <div class="form-group">
-                    <label class="label" for="inp-upper"><span class="badge">b</span>Upper</label>
-                    <div class="field-wrap">
-                      <input type="number" id="inp-upper" class="input mono" placeholder="3" step="any" aria-required="true" />
-                      <span class="field-icon" aria-hidden="true"></span>
-                      <span class="field-msg" role="alert"></span>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <label class="label" for="inp-n"><span class="badge">n</span>Intervals</label>
-                  <div class="field-wrap">
-                    <input type="number" id="inp-n" class="input mono" placeholder="6" min="1" step="1" aria-required="true" />
-                    <span class="field-icon" aria-hidden="true"></span>
-                    <span class="field-msg" role="alert"></span>
-                  </div>
-                  <span class="hint">Higher n = greater accuracy · even n required for Simpson</span>
-                </div>
-
-                <div class="section-label"><span>Method</span></div>
-
-                <div class="method-grid" role="radiogroup" aria-label="Integration method">
-                  <label class="method-card">
-                    <input type="radio" name="method" value="trapezoidal" />
-                    <span class="method-dot" aria-hidden="true"></span>
-                    <span class="method-name">Trapezoidal</span>
-                    <span class="method-desc">Linear segments</span>
-                    <span class="method-formula">h/2·[f₀+2f₁+…+fₙ]</span>
-                  </label>
-                  <label class="method-card">
-                    <input type="radio" name="method" value="rectangular" />
-                    <span class="method-dot" aria-hidden="true"></span>
-                    <span class="method-name">Rectangular</span>
-                    <span class="method-desc">Midpoint rule</span>
-                    <span class="method-formula">h·∑f(xᵢ)</span>
-                  </label>
-                  <label class="method-card">
-                    <input type="radio" name="method" value="simpson" checked />
-                    <span class="method-dot" aria-hidden="true"></span>
-                    <span class="method-name">Simpson</span>
-                    <span class="method-desc">Parabolic fit</span>
-                    <span class="method-formula">h/3·[f₀+4f₁+…+fₙ]</span>
-                  </label>
-                </div>
-
-              </div>
-            </div>
-
-            <div class="card-footer">
-              <button class="calc-btn" id="calcBtn" onclick="App.calculate()" title="Ctrl+Enter">
-                <span class="calc-btn-label">
-                  <span class="calc-btn-icon" aria-hidden="true">∫</span>
-                  Calculate Integral
-                </span>
-                <span class="calc-btn-spinner" aria-hidden="true"></span>
-              </button>
-
-              <div class="result-box" id="resultBox" role="status" aria-live="polite" style="display:none;margin-top:16px;">
-                <div class="result-top">
-                  <span class="result-label">Result</span>
-                  <button class="copy-btn" id="copyBtn">⎘ Copy</button>
-                </div>
-                <div class="result-number mono" id="resultValue"></div>
-                <div class="result-meta mono" id="resultMeta"></div>
-              </div>
-
-              <div class="error-box" id="errorBox" role="alert" style="display:none;margin-top:16px;">
-                <span class="error-icon" aria-hidden="true">⚠</span>
-                <span class="error-msg"></span>
-              </div>
-
-              <p class="kbd-hint">
-                <kbd>Ctrl</kbd>+<kbd>↵</kbd> calculate &nbsp;·&nbsp; <kbd>Ctrl</kbd>+<kbd>D</kbd> theme
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div class="panel-area">
-          <section id="historyPanel" class="history" hidden>
-            <div class="history-head">
-              <span class="history-title">History <span id="historyCount" class="history-badge">0</span></span>
-              <button class="history-clear" onclick="History.clear()">Clear all</button>
-            </div>
-            <div id="historyList" class="history-list"></div>
-          </section>
-        </div>
-
-      </main>
-
-      <footer class="footer">
-        <span class="footer-left">NIC · Numerical Integration Calculator</span>
-        <span class="footer-status">
-          <span class="status-dot online" aria-hidden="true"></span>
-          <span>Ready</span>
-        </span>
-      </footer>
-
+    <div class="stats-row">
+      <div class="stat">
+        <span class="stat-num">∞</span>
+        <span class="stat-label">Methods</span>
+      </div>
+      <div class="stat-div"></div>
+      <div class="stat">
+        <span class="stat-num">12</span>
+        <span class="stat-label">Techniques</span>
+      </div>
+      <div class="stat-div"></div>
+      <div class="stat">
+        <span class="stat-num">0.1s</span>
+        <span class="stat-label">Avg. solve time</span>
+      </div>
     </div>
-  </section>
+  </div>
 
-  <div class="toast-wrap" id="toastContainer" aria-live="polite"></div>
+  <!-- RIGHT — Animated math canvas -->
+  <div class="right-panel">
+    <canvas id="mathCanvas"></canvas>
+  </div>
 
-  <script src="script.js"></script>
+  <!-- TICKER -->
+  <div class="ticker">
+    <div class="ticker-track" id="tickerTrack"></div>
+  </div>
+
+</div>
+
+<script>
+/* ════════════════════════════════════════════
+   HERO BACKGROUND — particle field
+════════════════════════════════════════════ */
+(function(){
+  const c = document.getElementById('heroCanvas');
+  const ctx = c.getContext('2d');
+  let W,H,particles=[];
+
+  function resize(){
+    W=c.width=innerWidth; H=c.height=innerHeight;
+  }
+  resize();
+  addEventListener('resize',resize);
+
+  for(let i=0;i<120;i++) particles.push({
+    x:Math.random()*2000,y:Math.random()*2000,
+    r:Math.random()*1.6+.3,
+    vx:(Math.random()-.5)*.25,
+    vy:(Math.random()-.5)*.25,
+    a:Math.random()*.6+.1,
+    color: Math.random()<.3?'#e87048':'#ffffff'
+  });
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    /* deep gradient */
+    const g=ctx.createRadialGradient(W*.45,H*.5,0,W*.45,H*.5,W*.75);
+    g.addColorStop(0,'rgba(40,20,10,.55)');
+    g.addColorStop(1,'rgba(7,6,10,0)');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+
+    /* left ember glow */
+    const g2=ctx.createRadialGradient(W*.08,H*.5,0,W*.08,H*.5,W*.45);
+    g2.addColorStop(0,'rgba(232,112,72,.07)');
+    g2.addColorStop(1,'transparent');
+    ctx.fillStyle=g2; ctx.fillRect(0,0,W,H);
+
+    particles.forEach(p=>{
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0)p.x=W; if(p.x>W)p.x=0;
+      if(p.y<0)p.y=H; if(p.y>H)p.y=0;
+      ctx.globalAlpha=p.a;
+      ctx.fillStyle=p.color;
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fill();
+    });
+    ctx.globalAlpha=1;
+
+    /* connecting lines */
+    ctx.lineWidth=.4;
+    for(let i=0;i<particles.length;i++){
+      for(let j=i+1;j<particles.length;j++){
+        const dx=particles[i].x-particles[j].x;
+        const dy=particles[i].y-particles[j].y;
+        const d=Math.sqrt(dx*dx+dy*dy);
+        if(d<100){
+          ctx.globalAlpha=(1-d/100)*.08;
+          ctx.strokeStyle='#e87048';
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x,particles[i].y);
+          ctx.lineTo(particles[j].x,particles[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+    ctx.globalAlpha=1;
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+
+/* ════════════════════════════════════════════
+   MATH ANIMATION CANVAS (right panel)
+════════════════════════════════════════════ */
+(function(){
+  const c = document.getElementById('mathCanvas');
+  const ctx = c.getContext('2d');
+  const SIZE = 500;
+  c.width = SIZE; c.height = SIZE;
+  const cx = SIZE/2, cy = SIZE/2;
+  let t = 0;
+
+  // Spiral data
+  const NODES = 280;
+
+  // Floating formula labels
+  const formulas = [
+    { text: '∫₀^∞ e^{-x²}dx', x:.18, y:.18, delay:0 },
+    { text: '∑ aₙrⁿ',         x:.72, y:.12, delay:.6 },
+    { text: "f''(x)+f(x)=0",  x:.62, y:.82, delay:1.2 },
+    { text: '∇²φ = 0',        x:.12, y:.72, delay:1.8 },
+    { text: 'lim_{n→∞}',      x:.5,  y:.06, delay:.3 },
+  ];
+
+  let startTime = null;
+
+  function ease(t){ return t<1?t*t*t:1; }
+
+  function draw(ts){
+    if(!startTime) startTime = ts;
+    const elapsed = (ts - startTime) / 1000;
+    t = elapsed;
+
+    ctx.clearRect(0,0,SIZE,SIZE);
+
+    /* ── Central glowing orb ── */
+    const orbR = 60 + Math.sin(t*1.1)*6;
+    const og = ctx.createRadialGradient(cx,cy,0,cx,cy,orbR*2.2);
+    og.addColorStop(0,'rgba(232,112,72,.55)');
+    og.addColorStop(.5,'rgba(200,69,32,.18)');
+    og.addColorStop(1,'transparent');
+    ctx.fillStyle=og; ctx.beginPath(); ctx.arc(cx,cy,orbR*2.2,0,Math.PI*2); ctx.fill();
+
+    /* ── Inner solid orb ── */
+    const ig = ctx.createRadialGradient(cx-12,cy-14,0,cx,cy,orbR);
+    ig.addColorStop(0,'rgba(255,200,160,.95)');
+    ig.addColorStop(.4,'rgba(232,112,72,.9)');
+    ig.addColorStop(1,'rgba(180,50,10,.8)');
+    ctx.fillStyle=ig;
+    ctx.beginPath(); ctx.arc(cx,cy,orbR,0,Math.PI*2); ctx.fill();
+
+    /* ── Orbital ring ── */
+    ctx.save();
+    ctx.translate(cx,cy);
+    ctx.rotate(t*.4);
+    ctx.scale(1,.3);
+    ctx.beginPath();
+    ctx.arc(0,0,orbR+18,0,Math.PI*2);
+    ctx.strokeStyle='rgba(232,112,72,.35)';
+    ctx.lineWidth=2; ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(cx,cy);
+    ctx.rotate(-t*.25 + Math.PI*.4);
+    ctx.scale(1,.25);
+    ctx.beginPath();
+    ctx.arc(0,0,orbR+30,0,Math.PI*2);
+    ctx.strokeStyle='rgba(240,142,110,.2)';
+    ctx.lineWidth=1.5; ctx.stroke();
+    ctx.restore();
+
+    /* ── Fibonacci-style spiral ── */
+    ctx.beginPath();
+    for(let i=0;i<NODES;i++){
+      const frac = i/NODES;
+      const angle = frac * Math.PI * 10 + t*.35;
+      const r = frac * 195 + 8;
+      const x2 = cx + Math.cos(angle)*r;
+      const y2 = cy + Math.sin(angle)*r;
+      const alpha = frac * .75;
+      if(i===0) ctx.moveTo(x2,y2);
+      else {
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = `hsl(${20+frac*22},85%,${60-frac*20}%)`;
+        ctx.lineWidth = 1.4*(1-frac*.6);
+        ctx.lineTo(x2,y2);
+      }
+    }
+    ctx.stroke();
+    ctx.globalAlpha=1;
+
+    /* ── Orbiting particles ── */
+    const orbits = [
+      { r:90,  speed:.8,  off:0,      size:4,   color:'#e87048' },
+      { r:130, speed:-.55,off:2.1,    size:3,   color:'#f08e6e' },
+      { r:165, speed:.38, off:4.4,    size:2.5, color:'rgba(232,112,72,.65)' },
+      { r:200, speed:-.28,off:1.1,    size:2,   color:'rgba(232,112,72,.4)' },
+    ];
+    orbits.forEach(o=>{
+      const angle = t*o.speed+o.off;
+      const px = cx + Math.cos(angle)*o.r;
+      const py = cy + Math.sin(angle)*o.r;
+
+      /* trail */
+      for(let tr=1;tr<=8;tr++){
+        const ta = angle - tr*.07*o.speed;
+        const tx = cx + Math.cos(ta)*o.r;
+        const ty = cy + Math.sin(ta)*o.r;
+        ctx.globalAlpha = (1-tr/8)*.3;
+        ctx.fillStyle = o.color;
+        ctx.beginPath();
+        ctx.arc(tx,ty,o.size*(1-tr/8),0,Math.PI*2);
+        ctx.fill();
+      }
+      ctx.globalAlpha=1;
+
+      /* particle */
+      const pg = ctx.createRadialGradient(px,py,0,px,py,o.size*2.5);
+      pg.addColorStop(0,'rgba(255,220,180,.95)');
+      pg.addColorStop(.5,o.color);
+      pg.addColorStop(1,'transparent');
+      ctx.fillStyle=pg;
+      ctx.beginPath(); ctx.arc(px,py,o.size*2.5,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle=o.color;
+      ctx.beginPath(); ctx.arc(px,py,o.size,0,Math.PI*2); ctx.fill();
+    });
+
+    /* ── Grid lines (faint) ── */
+    ctx.save();
+    ctx.globalAlpha=.06;
+    ctx.strokeStyle='#e87048';
+    ctx.lineWidth=1;
+    for(let gx=0;gx<SIZE;gx+=40){
+      ctx.beginPath(); ctx.moveTo(gx,0); ctx.lineTo(gx,SIZE); ctx.stroke();
+    }
+    for(let gy=0;gy<SIZE;gy+=40){
+      ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(SIZE,gy); ctx.stroke();
+    }
+    ctx.restore();
+
+    /* ── Wave ring ── */
+    ctx.save();
+    ctx.globalAlpha=.3;
+    ctx.strokeStyle='rgba(232,112,72,.5)';
+    ctx.lineWidth=1.2;
+    ctx.beginPath();
+    for(let a=0;a<Math.PI*2;a+=.02){
+      const wave = Math.sin(a*8 + t*2)*6;
+      const rr = 215 + wave;
+      const wx = cx + Math.cos(a)*rr;
+      const wy = cy + Math.sin(a)*rr;
+      a===0 ? ctx.moveTo(wx,wy) : ctx.lineTo(wx,wy);
+    }
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
+
+    /* ── Floating formulas ── */
+    formulas.forEach(f=>{
+      const age = elapsed - f.delay;
+      if(age < 0) return;
+      const alpha = Math.min(1, age/.8) * (.55 + Math.sin(t*.7+f.delay)*.15);
+      const floatY = Math.sin(t*.5+f.delay)*7;
+      ctx.globalAlpha = alpha;
+      ctx.font = '600 13px "Fira Code", monospace';
+      ctx.fillStyle = 'rgba(240,142,110,1)';
+      ctx.textAlign = 'center';
+      ctx.fillText(f.text, f.x*SIZE, f.y*SIZE + floatY);
+    });
+    ctx.globalAlpha=1;
+
+    /* ── Outer pulse ring ── */
+    const pulseR = 220 + Math.sin(t*1.3)*10;
+    const pr = ctx.createRadialGradient(cx,cy,pulseR-4,cx,cy,pulseR+4);
+    pr.addColorStop(0,'transparent');
+    pr.addColorStop(.5,'rgba(232,112,72,.12)');
+    pr.addColorStop(1,'transparent');
+    ctx.fillStyle=pr;
+    ctx.beginPath(); ctx.arc(cx,cy,pulseR+4,0,Math.PI*2); ctx.fill();
+
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+})();
+
+
+/* ════════════════════════════════════════════
+   TICKER
+════════════════════════════════════════════ */
+(function(){
+  const items = [
+    '∫ sin(x)cos(x)dx  =  -¼cos(2x) + C',
+    '∑_{n=1}^{∞} 1/n²  =  π²/6',
+    "d/dx[arctan(x)]  =  1/(1+x²)",
+    '∫ sec²(x)dx  =  tan(x) + C',
+    'Taylor Series: f(x) = ∑ f^(n)(a)/n! (x-a)ⁿ',
+    '∫₀¹ x^n dx  =  1/(n+1)',
+    'Euler: e^{iπ} + 1 = 0',
+    '∫ e^x sin(x)dx  =  e^x(sin x - cos x)/2 + C',
+    'Maclaurin: sin(x) = x - x³/6 + x⁵/120 - ...',
+    '∫ 1/(1+x²)dx  =  arctan(x) + C',
+    'L{f\'(t)} = sF(s) - f(0)',
+    '∇·F = ∂P/∂x + ∂Q/∂y + ∂R/∂z',
+  ];
+
+  const track = document.getElementById('tickerTrack');
+  // duplicate for infinite scroll
+  const all = [...items, ...items];
+  all.forEach(txt => {
+    const el = document.createElement('span');
+    el.className = 'ticker-item';
+    el.innerHTML = `<span class="t-sym">≡</span><span class="t-sep">|</span>${txt}`;
+    track.appendChild(el);
+  });
+})();
+</script>
 </body>
 </html>
