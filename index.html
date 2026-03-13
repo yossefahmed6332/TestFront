@@ -1,128 +1,279 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Numerical Integration Calculator</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta name="description" content="Numerical Integration Calculator — Trapezoidal, Rectangular, and Simpson's rules with a modern interface." />
+  <title>NIC — Numerical Integration Calculator</title>
+
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Outfit:wght@300;400;500;600&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Styles (load order matters) -->
+  
+  
+  
+  <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
+  <!-- Animated canvas background -->
+  <canvas id="bg-canvas" aria-hidden="true"></canvas>
 
-  <div class="bg-grid"></div>
+  <div class="app">
 
-  <main class="page-wrapper">
-
-    <header class="page-header">
-      <div class="header-symbol">∫</div>
-      <div class="header-text">
-        <h1 class="page-title">Numerical Integration</h1>
-        <p class="page-subtitle">Calculator</p>
+    <!-- ── Top Bar ──────────────────────────────── -->
+    <header class="topbar" role="banner">
+      <div class="topbar-brand">
+        <div class="topbar-logo" aria-hidden="true">∫</div>
+        <span class="topbar-name">NIC · v2.0</span>
       </div>
+      <nav class="topbar-actions" aria-label="App controls">
+        <button class="theme-btn" id="themeBtn" onclick="Theme.toggle()" aria-label="Toggle colour theme" title="Toggle theme (Ctrl+D)">
+          <span class="t-icon" aria-hidden="true">◑</span>
+          <span class="t-label">Dark</span>
+        </button>
+      </nav>
     </header>
 
-    <div class="card">
+    <!-- ── Main ─────────────────────────────────── -->
+    <main class="main" id="main">
 
-      <div class="card-section">
-        <label class="input-label" for="function">
-          <span class="label-tag">f(x)</span>
-          Function
-        </label>
-        <div class="input-wrapper">
-          <input
-            type="text"
-            id="function"
-            class="input-field mono"
-            placeholder="e.g. 1/(x+1)  or  x^2 + sin(x)"
-            autocomplete="off"
-            spellcheck="false"
-          />
-          <div class="input-hint">Use standard math notation</div>
+      <!-- Hero -->
+      <div class="hero-area">
+        <div class="hero">
+          <div class="hero-eyebrow" data-reveal>
+            <span class="hero-eyebrow-dot" aria-hidden="true"></span>
+            Numerical Methods
+          </div>
+          <h1 class="hero-title" data-reveal>
+            Definite <span>Integration</span><br />Calculator
+          </h1>
+          <p class="hero-sub" data-reveal>
+            Approximate definite integrals using classical numerical methods.
+            Enter your function, set the bounds, pick a method.
+          </p>
         </div>
       </div>
 
-      <div class="input-row">
-        <div class="card-section">
-          <label class="input-label" for="lower">
-            <span class="label-tag">a</span>
-            Lower Limit
-          </label>
-          <input type="number" id="lower" class="input-field mono" placeholder="0" step="any" />
-        </div>
-        <div class="divider-arrow">→</div>
-        <div class="card-section">
-          <label class="input-label" for="upper">
-            <span class="label-tag">b</span>
-            Upper Limit
-          </label>
-          <input type="number" id="upper" class="input-field mono" placeholder="3" step="any" />
-        </div>
+      <!-- Form Card -->
+      <div class="form-area" data-reveal>
+        <div class="card" id="mainCard" role="main">
+          <div class="card-shimmer" aria-hidden="true"></div>
+
+          <div class="card-header">
+            <span class="card-title">Configuration</span>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="footer-status">
+                <span class="status-dot" id="statusDot" aria-hidden="true"></span>
+                <span id="statusLabel" style="font-size:.68rem;font-family:var(--font-mono);color:var(--text-muted);">ready</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="form-stack">
+
+              <!-- f(x) -->
+              <div class="form-group">
+                <label class="label" for="inp-function">
+                  <span class="label-badge">f(x)</span>
+                  Function
+                </label>
+                <div class="field-wrap">
+                  <input
+                    type="text" id="inp-function"
+                    class="input mono"
+                    placeholder="e.g.  1/(x+1)  ·  x**2 + sin(x)  ·  exp(-x)"
+                    autocomplete="off" spellcheck="false"
+                    aria-required="true"
+                    aria-describedby="fn-hint"
+                  />
+                  <span class="field-status-icon" aria-hidden="true"></span>
+                  <span class="field-error-msg" role="alert"></span>
+                </div>
+                <span class="label-hint" id="fn-hint">Python math syntax &nbsp;·&nbsp; use ** for powers</span>
+              </div>
+
+              <div class="divider-label">
+                <span>Integration bounds</span>
+              </div>
+
+              <!-- a and b -->
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="label" for="inp-lower">
+                    <span class="label-badge">a</span>
+                    Lower limit
+                  </label>
+                  <div class="field-wrap">
+                    <input type="number" id="inp-lower" class="input mono"
+                      placeholder="0" step="any"
+                      aria-required="true" />
+                    <span class="field-status-icon" aria-hidden="true"></span>
+                    <span class="field-error-msg" role="alert"></span>
+                  </div>
+                </div>
+                <div class="form-row-arrow" aria-hidden="true">→</div>
+                <div class="form-group">
+                  <label class="label" for="inp-upper">
+                    <span class="label-badge">b</span>
+                    Upper limit
+                  </label>
+                  <div class="field-wrap">
+                    <input type="number" id="inp-upper" class="input mono"
+                      placeholder="3" step="any"
+                      aria-required="true" />
+                    <span class="field-status-icon" aria-hidden="true"></span>
+                    <span class="field-error-msg" role="alert"></span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- n -->
+              <div class="form-group">
+                <label class="label" for="inp-n">
+                  <span class="label-badge">n</span>
+                  Intervals
+                </label>
+                <div class="field-wrap">
+                  <input type="number" id="inp-n" class="input mono"
+                    placeholder="6" min="1" step="1"
+                    aria-required="true"
+                    aria-describedby="n-hint" />
+                  <span class="field-status-icon" aria-hidden="true"></span>
+                  <span class="field-error-msg" role="alert"></span>
+                </div>
+                <span class="label-hint" id="n-hint">Higher n = greater accuracy &nbsp;·&nbsp; even n required for Simpson</span>
+              </div>
+
+              <div class="divider-label">
+                <span>Method</span>
+              </div>
+
+              <!-- Method selection -->
+              <div class="form-group" role="radiogroup" aria-label="Integration method">
+                <div class="method-grid">
+
+                  <label class="method-card">
+                    <input type="radio" name="method" value="trapezoidal" />
+                    <span class="method-card-indicator" aria-hidden="true"></span>
+                    <span class="method-card-name">Trapezoidal</span>
+                    <span class="method-card-desc">Linear piecewise approximation</span>
+                    <span class="method-card-formula">h/2·[f₀+2f₁+…+fₙ]</span>
+                  </label>
+
+                  <label class="method-card">
+                    <input type="radio" name="method" value="rectangular" />
+                    <span class="method-card-indicator" aria-hidden="true"></span>
+                    <span class="method-card-name">Rectangular</span>
+                    <span class="method-card-desc">Midpoint rectangle rule</span>
+                    <span class="method-card-formula">h·∑f(xᵢ)</span>
+                  </label>
+
+                  <label class="method-card">
+                    <input type="radio" name="method" value="simpson" checked />
+                    <span class="method-card-indicator" aria-hidden="true"></span>
+                    <span class="method-card-name">Simpson</span>
+                    <span class="method-card-desc">Parabolic curve fitting</span>
+                    <span class="method-card-formula">h/3·[f₀+4f₁+2f₂…+fₙ]</span>
+                  </label>
+
+                </div>
+              </div>
+
+            </div><!-- /form-stack -->
+          </div><!-- /card-body -->
+
+          <div class="card-footer">
+
+            <!-- Calculate button -->
+            <button class="btn-calculate" id="calcBtn"
+              onclick="App.calculate()"
+              aria-label="Calculate definite integral"
+              title="Calculate (Ctrl+Enter)">
+              <div class="btn-label">
+                <span class="btn-label-icon" aria-hidden="true">∫</span>
+                <span>Calculate Integral</span>
+              </div>
+              <span class="btn-spinner" aria-hidden="true"></span>
+            </button>
+
+            <!-- Result -->
+            <div class="result-panel" id="resultPanel" role="status" aria-live="polite" style="display:none;margin-top:16px;">
+              <div class="result-panel-header">
+                <span class="result-label">Result</span>
+                <div class="result-actions">
+                  <button class="result-copy-btn" id="copyBtn" aria-label="Copy result to clipboard">
+                    <span>⎘</span> Copy
+                  </button>
+                </div>
+              </div>
+              <div class="result-value-wrap">
+                <div class="result-value mono" id="resultValue"></div>
+                <div class="result-meta mono" id="resultMeta"></div>
+              </div>
+            </div>
+
+            <!-- Error -->
+            <div class="error-banner" id="errorBanner" role="alert" style="display:none;margin-top:16px;">
+              <span class="error-icon" aria-hidden="true">⚠</span>
+              <span class="error-text"></span>
+            </div>
+
+            <!-- Keyboard hint -->
+            <p style="text-align:center;margin-top:14px;font-size:.68rem;color:var(--text-muted);font-family:var(--font-mono);">
+              <kbd>Ctrl</kbd> + <kbd>↵</kbd> to calculate &nbsp;·&nbsp;
+              <kbd>Ctrl</kbd> + <kbd>D</kbd> to toggle theme
+            </p>
+
+          </div><!-- /card-footer -->
+        </div><!-- /card -->
+      </div><!-- /form-area -->
+
+      <!-- History -->
+      <div class="panel-area">
+        <section class="history-panel" id="historyPanel" hidden aria-label="Calculation history">
+          <div class="history-header">
+            <div>
+              <span class="history-title-text">History</span>
+              <span class="history-count" id="historyCount" aria-label="number of saved calculations">0</span>
+            </div>
+            <button class="history-clear-btn btn" onclick="History.clear()" aria-label="Clear calculation history">
+              Clear all
+            </button>
+          </div>
+          <div class="history-list" id="historyList" aria-label="Past calculations — click to restore"></div>
+        </section>
       </div>
 
-      <div class="card-section">
-        <label class="input-label" for="intervals">
-          <span class="label-tag">n</span>
-          Number of Intervals
-        </label>
-        <input type="number" id="intervals" class="input-field mono" placeholder="6" min="1" step="1" />
-      </div>
+    </main><!-- /main -->
 
-      <div class="card-section">
-        <p class="input-label">
-          <span class="label-tag">∼</span>
-          Integration Method
-        </p>
-        <div class="radio-group">
-          <label class="radio-card" id="radio-trap">
-            <input type="radio" name="method" value="trapezoidal" />
-            <span class="radio-indicator"></span>
-            <span class="radio-content">
-              <span class="radio-name">Trapezoidal</span>
-              <span class="radio-desc">Linear segments</span>
-            </span>
-          </label>
-          <label class="radio-card" id="radio-rect">
-            <input type="radio" name="method" value="rectangular" />
-            <span class="radio-indicator"></span>
-            <span class="radio-content">
-              <span class="radio-name">Rectangular</span>
-              <span class="radio-desc">Midpoint rule</span>
-            </span>
-          </label>
-          <label class="radio-card" id="radio-simp">
-            <input type="radio" name="method" value="simpson" checked />
-            <span class="radio-indicator"></span>
-            <span class="radio-content">
-              <span class="radio-name">Simpson</span>
-              <span class="radio-desc">Parabolic fit</span>
-            </span>
-          </label>
-        </div>
-      </div>
-
-      <button class="calc-btn" id="calcBtn" onclick="calculate()">
-        <span class="btn-icon">∫</span>
-        <span class="btn-text">Calculate</span>
-        <span class="btn-loader" id="loader"></span>
-      </button>
-
-      <div class="result-box" id="resultBox">
-        <div class="result-label">Result</div>
-        <div class="result-value mono" id="resultValue">—</div>
-        <div class="result-meta" id="resultMeta"></div>
-      </div>
-
-      <div class="error-box" id="errorBox"></div>
-
-    </div>
-
-    <footer class="page-footer">
-      Numerical methods · Approximation via finite intervals
+    <!-- ── Footer ────────────────────────────────── -->
+    <footer class="footer" role="contentinfo">
+      <span class="footer-left">NIC · Numerical Integration Calculator &copy; 2025</span>
+      <nav class="footer-right" aria-label="Footer links">
+        <span class="footer-status">
+          <span class="status-dot online" aria-hidden="true"></span>
+          <span style="font-size:.72rem;">Ready</span>
+        </span>
+      </nav>
     </footer>
 
-  </main>
+  </div><!-- /app -->
 
+  <!-- Toast container -->
+  <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Scripts (load order matters) -->
+  
+  
+  
+  
+  
+  
   <script src="script.js"></script>
 </body>
 </html>
